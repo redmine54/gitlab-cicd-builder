@@ -1,4 +1,5 @@
 # GitHub Copilot Agent 実装指示書
+
 # GitLab Common CI/CD Template Repository v1.0.0
 
 ---
@@ -42,6 +43,8 @@ gitlab-cicd-template/
 
 提供するもの
 
+- `all_stages.yml`による共通の非表示Job Template
+- `app_pipeline.yml`によるAPP_TYPE別の実行Job
 - GitLab CI/CD Template
 - Job Template
 - Build Script
@@ -53,18 +56,20 @@ gitlab-cicd-template/
 - README
 - examples
 
-提供しないもの
+共通側が管理するもの
 
-- APP_NAME
-- APP_TYPE選択
-- stages
-- workflow
-- rules
-- when
-- branch戦略
-- deploy戦略
+- APP_TYPEに応じたJob選択
+- Jobのstage配置、`needs`による依存関係
+- 共通Deploy Jobとmanual条件
 
-これらはアプリ側で定義する。
+アプリ側が管理するもの
+
+- `APP_NAME`、`APP_TYPE`、`DEPLOY_ENV`などの値
+- `stages`一覧
+- Pipeline作成条件を定める`workflow.rules`
+- アプリ固有のディレクトリ、起動コマンド、接続先など
+
+アプリ側は共通の実行Jobを個別に定義しない。`APP_TYPE`を指定し、共通側にJobを選択させる。
 
 ---
 
@@ -74,21 +79,9 @@ gitlab-cicd-template/
 
 GitLab標準記法を採用すること。
 
-アプリ側では以下を直接記述できること。
+アプリ側では以下のGitLab標準記法を利用できること。
 
-```yaml
-stages:
-workflow:
-rules:
-when:
-variables:
-include:
-extends:
-needs:
-artifacts:
-```
-
-共通CI/CDはそれを阻害しないこと。
+`stages`、`workflow`、`variables`、`include`はアプリ側が所有する。共通Jobは標準の`extends`、`needs`、`artifacts`、`rules`、`when`を利用し、独自DSLを導入しない。
 
 ---
 
@@ -111,6 +104,20 @@ was
 
 liberty
 ```
+
+APP_TYPEはアプリ側で指定し、共通側の`app_pipeline.yml`が対応する実行Jobを選択する。
+
+| APP_TYPE           | 共通側が選択するJob                                        |
+| ------------------ | ---------------------------------------------------------- |
+| `tomcat`           | Tomcat Build/Test/E2E/Deploy                               |
+| `springboot`       | Spring Boot Build/Test/E2E/Deploy                          |
+| `vue-springboot`   | Vue frontend + Spring Boot backend Build/Test/E2E/Deploy   |
+| `react-springboot` | React frontend + Spring Boot backend Build/Test/E2E/Deploy |
+| `python`           | Python Build/Test/E2E/Deploy                               |
+| `was`              | WAS Build/Test/Deploy                                      |
+| `liberty`          | Liberty Build/Test/E2E/Deploy                              |
+
+PreとSecurityはすべての有効なAPP_TYPEで実行する。E2Eは対応APP_TYPEかつ`STARTUP_URL`と`PLAYWRIGHT_DIR`が設定された場合に限る。Performanceは`PERFORMANCE_URL`設定時、Releaseはバージョンtagで実行する。CleanupとNotifyは常時実行する。
 
 ---
 
@@ -276,6 +283,8 @@ Playwright実行
 
 利用者は Startup を意識しない。
 
+E2E Jobは対応APP_TYPEで`STARTUP_URL`と`PLAYWRIGHT_DIR`が設定された場合だけ追加する。起動、readiness確認、Playwright実行、停止、cleanupはE2E内部で行い、Startup stage/jobは公開しない。
+
 ---
 
 # 13. デフォルト値管理
@@ -300,7 +309,7 @@ Python Version
 その他共通設定
 ```
 
-APP固有設定は保持しないこと。
+アプリ固有設定と`stages`一覧は共通デフォルトに含めないこと。`stages`一覧はアプリ側で定義し、各共通Job Templateが使用stageを指定する。
 
 ---
 
@@ -378,6 +387,8 @@ NG例
 
 GitLab Pipeline画面だけ見ても何を実行しているかわかる命名とすること。
 
+上記は共通側の非表示Job Template名とする。`includes/app_pipeline.yml`にAPP_TYPE別の実行Jobを定義し、条件に一致したJobだけをPipelineへ追加する。
+
 ---
 
 # 15. 共通CI/CDディレクトリ構成
@@ -396,6 +407,10 @@ examples/
 gitlab_cicd_templates/
 
 gitlab_cicd_templates/includes/
+
+gitlab_cicd_templates/includes/all_stages.yml
+
+gitlab_cicd_templates/includes/app_pipeline.yml
 
 gitlab_cicd_templates/scripts/
 
@@ -450,7 +465,13 @@ gitlab_cicd_templates/tests/
 58_stage_cleanup_common.yml
 
 59_stage_notify_common.yml
+
+includes/all_stages.yml
+
+includes/app_pipeline.yml
 ```
+
+`all_stages.yml`は共通デフォルトと番号付きstage YAMLを`include:local`で読み込む。`app_pipeline.yml`はアプリの`.gitlab-ci.yml`から別のinclude項目として直接読み込む。
 
 ---
 
@@ -475,6 +496,8 @@ set -eu
 ログ出力関数を共通化すること。
 
 異常終了時は非0を返すこと。
+
+CIから直接実行するShell Scriptとsmoke testには実行権限を付与すること。
 
 ---
 
@@ -514,6 +537,8 @@ Vue(Vite)
 SpringBoot
 
 H2
+
+Java 17
 ```
 
 ---
@@ -548,80 +573,94 @@ reports/
 
 # 22. project-app/.gitlab-ci.yml
 
-実際に作成すること。
+アプリ側で定義するのはinclude、`stages`、`workflow`、変数とする。共通の実行Jobはアプリ側に定義せず、`APP_TYPE`に基づいて`app_pipeline.yml`から追加する。
 
-以下を実現すること。
+## Include
 
-## 共通Template読込
+include項目は2つに分け、アプリの`.gitlab-ci.yml`先頭にこの順序で記載する。両方で同じprojectとrefを使い、YAML anchor/aliasで値を共有する。
 
 ```yaml
 include:
+  - project: &template_project YOUR_GROUP/gitlab-cicd-template
+    ref: &template_ref v1.0.0
+    file: /gitlab_cicd_templates/includes/all_stages.yml
+  - project: *template_project
+    ref: *template_ref
+    file: /gitlab_cicd_templates/includes/app_pipeline.yml
 ```
 
-で
+`all_stages.yml`は番号付きstage YAMLと共通の非表示Job Templateを読み込む。`app_pipeline.yml`はAPP_TYPE別の実行Jobを定義する。GitLabはPipeline作成時に両includeを統合するため、このYAML上の順序をJobの実行順として説明しない。
 
-```text
-gitlab-cicd-template
-v1.0.0
-```
+## Stages
 
-を利用する構成とする。
-
----
-
-## APP定義
-
-例
-
-```yaml
-variables:
-
-  APP_NAME: customer-portal
-
-  APP_TYPE: vue-springboot
-
-  DEPLOY_ENV: dev
-```
-
----
-
-## GitLab標準記法利用
-
-利用例として以下を実装すること。
+stage一覧はアプリ側で宣言する。共通Job Templateが各Jobのstageを指定し、アプリ側の一覧と一致させる。
 
 ```yaml
 stages:
+  - 40_pre
+  - 51_build
+  - 52_test
+  - 53_e2e
+  - 54_security
+  - 55_performance
+  - 56_deploy
+  - 57_release
+  - 58_cleanup
+  - 59_notify
 ```
+
+## Workflowとブランチ条件
+
+Pipeline作成対象はアプリ側の`workflow.rules`で定義する。MR Pipelineを許可し、MRが開いているブランチへの通常pushによる重複branch Pipelineを抑止してから、feature/main/master/release branchとversion tagを許可する。
 
 ```yaml
 workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: "$CI_COMMIT_BRANCH =~ $FEATURE_BRANCH_REGEX"
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: "$CI_COMMIT_BRANCH =~ $RELEASE_BRANCH_REGEX"
+    - if: "$CI_COMMIT_TAG =~ $VERSION_TAG_REGEX"
 ```
+
+`FEATURE_BRANCH_REGEX`、`RELEASE_BRANCH_REGEX`、`VERSION_TAG_REGEX`はアプリ側トップレベル`variables`に定義し、`workflow`と共通Jobの`rules`から参照する。
+
+## Variables
+
+以下はサンプルアプリの変数例とする。実際のアプリ固有値、E2E設定、品質設定もアプリ側で指定できる。
 
 ```yaml
-rules:
+variables:
+  TEMPLATE_PROJECT_PATH: *template_project
+  TEMPLATE_REF: *template_ref
+  FEATURE_BRANCH_REGEX: '/^feature.*$/'
+  RELEASE_BRANCH_REGEX: '/^release\/.*$/'
+  VERSION_TAG_REGEX: '/^v[0-9]+\.[0-9]+.*$/'
+  APP_NAME: customer-portal
+  APP_TYPE: vue-springboot
+  DEPLOY_ENV: dev
+  FRONTEND_DIR: frontend
+  BACKEND_DIR: backend
+  PLAYWRIGHT_DIR: playwright
+  STARTUP_URL: http://127.0.0.1:4173
+  BACKEND_STARTUP_COMMAND: cd backend && java -jar target/customer-portal-1.0.0-SNAPSHOT.jar
+  STARTUP_COMMAND: cd frontend && npm run preview -- --host 127.0.0.1
 ```
 
-```yaml
-when:
-```
+実行Jobの説明コメントをvariablesの後に置き、Jobの定義元と選択方法を説明する。アプリ側にJob本体を重複定義しない。
 
----
+## 共通側が定義するJob動作
 
-## Job構成例
-
-```yaml
-frontend_build:
-  extends: .vue_frontend_build
-
-backend_build:
-  extends: .springboot_build
-
-frontend_test:
-  extends: .vue_frontend_test
-
-backend_test:
-  extends: .springboot_test
-```
+- `pre_quality`は全Pipelineで実行する。
+- `APP_TYPE`が対応するBuild/Test Jobを選ぶ。複合タイプではfrontend/backendの両方を選び、`needs`で依存関係を設定する。
+- E2E対応タイプは`STARTUP_URL`と`PLAYWRIGHT_DIR`が設定され、MRまたはdefault branchの場合に実行する。
+- Securityは有効な全APP_TYPEで実行する。Performanceは`PERFORMANCE_URL`設定時に実行する。
+- Deployは`main`、`master`、`release/*`でmanualとする。
+- Releaseは`VERSION_TAG_REGEX`に一致するtagで実行する。
+- CleanupとNotifyは常時実行する。
 
 ---
 
@@ -654,6 +693,10 @@ README.mdを作成すること。
 ### Quality Rule一覧
 
 ### 変数一覧
+
+### GitLab CI/CD Settingsで外部定義する変数と用途
+
+### セキュリティ管理する変数、Masked/Protected設定、権限
 
 ### examples説明
 
@@ -734,3 +777,5 @@ project-app/.gitlab-ci.yml
 ```
 
 雛形だけでなく最低限動作するサンプル実装を含めること。
+
+`project-app/.gitlab-ci.yml`は共通の2ファイルをincludeし、アプリ側にstages/workflow/variablesを宣言する。実行Jobは`app_pipeline.yml`がAPP_TYPEに応じて定義する。
