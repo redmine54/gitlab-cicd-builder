@@ -1,0 +1,11 @@
+.security_scan:
+  stage: 54_security
+  image: node:${NODE_VERSION}-bookworm
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/security/security_scan.sh
+  artifacts:
+    when: always
+    paths:
+      - reports/
+    expire_in: 7 days

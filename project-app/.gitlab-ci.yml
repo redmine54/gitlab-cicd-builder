@@ -1,0 +1,52 @@
+# all_stages.ymlはextendsで使う共通Jobテンプレートを定義します。
+# app_pipeline.ymlは実行Jobを定義し、rulesでAPP_TYPEに合うJobをPipelineへ追加します。
+# GitLabはPipeline作成時に両方のincludeを統合します。
+include:
+  - project: &template_project YOUR_GROUP/gitlab-cicd-template
+    ref: &template_ref v1.0.0
+    file: /gitlab_cicd_templates/includes/all_stages.yml
+  - project: *template_project
+    ref: *template_ref
+    file: /gitlab_cicd_templates/includes/app_pipeline.yml
+
+stages:
+  - 40_pre
+  - 51_build
+  - 52_test
+  - 53_e2e
+  - 54_security
+  - 55_performance
+  - 56_deploy
+  - 57_release
+  - 58_cleanup
+  - 59_notify
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: "$CI_COMMIT_BRANCH =~ $FEATURE_BRANCH_REGEX"
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: "$CI_COMMIT_BRANCH =~ $RELEASE_BRANCH_REGEX"
+    - if: "$CI_COMMIT_TAG =~ $VERSION_TAG_REGEX"
+
+variables:
+  TEMPLATE_PROJECT_PATH: &template_project YOUR_GROUP/gitlab-cicd-template
+  TEMPLATE_REF: &template_ref v1.0.0
+  FEATURE_BRANCH_REGEX: "/^feature.*$/"
+  RELEASE_BRANCH_REGEX: '/^release\/.*$/'
+  VERSION_TAG_REGEX: '/^v[0-9]+\.[0-9]+.*$/'
+  APP_NAME: customer-portal
+  APP_TYPE: vue-springboot
+  DEPLOY_ENV: dev
+  FRONTEND_DIR: frontend
+  BACKEND_DIR: backend
+  PLAYWRIGHT_DIR: playwright
+  STARTUP_URL: http://127.0.0.1:4173
+  BACKEND_STARTUP_COMMAND: cd backend && java -jar target/customer-portal-1.0.0-SNAPSHOT.jar
+  STARTUP_COMMAND: cd frontend && npm run preview -- --host 127.0.0.1
+  PRE_SBOM_ENABLED: "true"
+  SECURITY_TOOLS: trivy
+
+# app_pipeline.ymlに実行Jobが定義され、APP_TYPE等のrules条件に一致したJobがPipelineに追加されます。
+# Jobの処理本体はall_stages.ymlが読み込む共通テンプレートをextendsして利用します。

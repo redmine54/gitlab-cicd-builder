@@ -1,0 +1,11 @@
+.common_pre:
+  stage: 40_pre
+  image: node:${NODE_VERSION}-bookworm
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/common/pre/common_pre.sh
+  artifacts:
+    when: always
+    paths:
+      - reports/
+    expire_in: 7 days

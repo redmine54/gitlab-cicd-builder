@@ -1,0 +1,4 @@
+/Users/Hiro/git_lesson/gitlab-cicd-builder/project-app/backend/src/main/java/com/example/customerportal/CustomerPortalApplication.java
+/Users/Hiro/git_lesson/gitlab-cicd-builder/project-app/backend/src/main/java/com/example/customerportal/customer/Customer.java
+/Users/Hiro/git_lesson/gitlab-cicd-builder/project-app/backend/src/main/java/com/example/customerportal/customer/CustomerController.java
+/Users/Hiro/git_lesson/gitlab-cicd-builder/project-app/backend/src/main/java/com/example/customerportal/customer/CustomerRepository.java

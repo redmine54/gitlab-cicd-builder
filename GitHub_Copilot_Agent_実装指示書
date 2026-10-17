@@ -1,0 +1,736 @@
+# GitHub Copilot Agent 実装指示書
+# GitLab Common CI/CD Template Repository v1.0.0
+
+---
+
+# 1. 目的
+
+GitLab向け共通CI/CDテンプレートリポジトリを作成する。
+
+本成果物は以下2つのプロジェクト構成を同一ワークスペース内に作成すること。
+
+```text
+project-app/
+gitlab-cicd-template/
+```
+
+ただし将来的には別リポジトリとして管理することを前提とし、それぞれ独立可能な構成とする。
+
+---
+
+# 2. 作成対象
+
+以下を作成すること。
+
+```text
+project-app/
+```
+
+Vue(Vite)+SpringBoot+H2 のサンプルアプリ
+
+```text
+gitlab-cicd-template/
+```
+
+共通CI/CDテンプレートリポジトリ
+
+---
+
+# 3. 設計方針
+
+## 共通CI/CD側
+
+提供するもの
+
+- GitLab CI/CD Template
+- Job Template
+- Build Script
+- Test Script
+- Deploy Script
+- Release Script
+- Notify Script
+- Quality Policy
+- README
+- examples
+
+提供しないもの
+
+- APP_NAME
+- APP_TYPE選択
+- stages
+- workflow
+- rules
+- when
+- branch戦略
+- deploy戦略
+
+これらはアプリ側で定義する。
+
+---
+
+# 4. GitLab利用方針
+
+独自DSLは禁止。
+
+GitLab標準記法を採用すること。
+
+アプリ側では以下を直接記述できること。
+
+```yaml
+stages:
+workflow:
+rules:
+when:
+variables:
+include:
+extends:
+needs:
+artifacts:
+```
+
+共通CI/CDはそれを阻害しないこと。
+
+---
+
+# 5. APP_TYPE
+
+サポート対象
+
+```text
+tomcat
+
+springboot
+
+vue-springboot
+
+react-springboot
+
+python
+
+was
+
+liberty
+```
+
+---
+
+# 6. Pipeline番号体系
+
+```text
+10 Pipeline
+
+40 Pre
+
+51 Build
+
+52 Test
+
+53 E2E
+
+54 Security
+
+55 Performance
+
+56 Deploy
+
+57 Release
+
+58 Cleanup
+
+59 Notify
+```
+
+---
+
+# 7. Stage構成
+
+Preは単一Stageで管理すること。
+
+以下を個別Stageへ分割しない。
+
+```text
+Validate
+
+Secret Scan
+
+Dependency Scan
+
+SBOM
+
+License Check
+
+SAST
+
+Policy Gate
+```
+
+---
+
+# 8. Pre実装
+
+Pre制御は以下で実装すること。
+
+```text
+scripts/common/pre/common_pre.sh
+```
+
+---
+
+# 9. QUALITY POLICY
+
+以下を実装すること。
+
+```text
+PRE_VALIDATE_ENABLED
+
+PRE_SECRET_SCAN_ENABLED
+
+PRE_DEPENDENCY_SCAN_ENABLED
+
+PRE_SBOM_ENABLED
+
+PRE_LICENSE_ENABLED
+
+PRE_SAST_ENABLED
+
+PRE_POLICY_GATE_ENABLED
+```
+
+---
+
+# 10. QUALITY RULE
+
+以下を実装すること。
+
+```text
+SECRET_SCAN_FAIL_ON_FOUND
+
+CVE_FAIL_SEVERITY
+
+LICENSE_DENY_LIST
+
+SAST_FAIL_SEVERITY
+
+POLICY_GATE_FAIL_FAST
+
+TEST_COVERAGE_MIN
+```
+
+---
+
+# 11. Security Stage
+
+Security Stageは複数セキュリティツールを選択可能とする。
+
+デフォルトは以下。
+
+```yaml
+SECURITY_TOOLS: trivy
+```
+
+複数指定を可能とする。
+
+例
+
+```yaml
+SECURITY_TOOLS: trivy,dependency-check
+```
+
+サポート対象
+
+```text
+trivy
+
+dependency-check
+
+container-scan
+```
+
+将来追加可能な構造とする。
+
+---
+
+# 12. Startup
+
+Startup Stageは公開しない。
+
+E2E内部処理として実施すること。
+
+実行例
+
+```text
+アプリ起動
+
+↓
+
+Playwright実行
+
+↓
+
+停止
+
+↓
+
+クリーンアップ
+```
+
+利用者は Startup を意識しない。
+
+---
+
+# 13. デフォルト値管理
+
+共通デフォルト値は以下に配置すること。
+
+```text
+10_pipeline_standard.yml
+```
+
+保存対象
+
+```text
+QUALITY POLICY
+
+QUALITY RULE
+
+Node Version
+
+Python Version
+
+その他共通設定
+```
+
+APP固有設定は保持しないこと。
+
+---
+
+# 14. Job Template命名規約
+
+抽象テンプレートは禁止。
+
+NG例
+
+```text
+.build
+
+.test
+
+.deploy
+
+.e2e
+```
+
+採用する命名
+
+```text
+.vue_frontend_build
+
+.react_frontend_build
+
+.springboot_build
+
+.tomcat_build
+
+.python_build
+
+.was_build
+
+.liberty_build
+```
+
+```text
+.vue_frontend_test
+
+.react_frontend_test
+
+.springboot_test
+
+.tomcat_test
+
+.python_test
+
+.was_test
+
+.liberty_test
+```
+
+```text
+.springboot_e2e
+
+.tomcat_e2e
+
+.python_e2e
+
+.liberty_e2e
+```
+
+```text
+.springboot_deploy
+
+.tomcat_deploy
+
+.python_deploy
+
+.was_deploy
+
+.liberty_deploy
+```
+
+GitLab Pipeline画面だけ見ても何を実行しているかわかる命名とすること。
+
+---
+
+# 15. 共通CI/CDディレクトリ構成
+
+以下の構成を作成すること。
+
+```text
+gitlab-cicd-template/
+
+README.md
+
+docs/
+
+examples/
+
+gitlab_cicd_templates/
+
+gitlab_cicd_templates/includes/
+
+gitlab_cicd_templates/scripts/
+
+gitlab_cicd_templates/scripts/common/
+
+gitlab_cicd_templates/scripts/build/
+
+gitlab_cicd_templates/scripts/test/
+
+gitlab_cicd_templates/scripts/startup/
+
+gitlab_cicd_templates/scripts/e2e/
+
+gitlab_cicd_templates/scripts/performance/
+
+gitlab_cicd_templates/scripts/deploy/
+
+gitlab_cicd_templates/scripts/release/
+
+gitlab_cicd_templates/scripts/notify/
+
+gitlab_cicd_templates/reports/
+
+gitlab_cicd_templates/tests/
+```
+
+---
+
+# 16. YAML作成対象
+
+以下を実際に作成すること。
+
+```text
+10_pipeline_standard.yml
+
+40_stage_pre_common.yml
+
+51_stage_build_common.yml
+
+52_stage_test_common.yml
+
+53_stage_e2e_common.yml
+
+54_stage_security_common.yml
+
+55_stage_performance_common.yml
+
+56_stage_deploy_common.yml
+
+57_stage_release_common.yml
+
+58_stage_cleanup_common.yml
+
+59_stage_notify_common.yml
+```
+
+---
+
+# 17. Script作成対象
+
+雛形ではなく実装すること。
+
+最低限動作する内容を記述すること。
+
+空ファイルは禁止。
+
+---
+
+# 18. Shell実装方針
+
+全Shell Scriptは以下を採用すること。
+
+```bash
+set -eu
+```
+
+ログ出力関数を共通化すること。
+
+異常終了時は非0を返すこと。
+
+---
+
+# 19. examples
+
+以下を配置すること。
+
+```text
+examples/
+
+vue-springboot/
+
+react-springboot/
+
+python/
+
+liberty/
+```
+
+README掲載用ではなく実行可能なサンプルとすること。
+
+---
+
+# 20. project-app作成
+
+以下を作成すること。
+
+```text
+project-app/
+```
+
+前提
+
+```text
+Vue(Vite)
+
+SpringBoot
+
+H2
+```
+
+---
+
+# 21. project-app 構成
+
+作成対象
+
+```text
+frontend/
+
+backend/
+
+playwright/
+
+sql/
+
+config/
+
+docs/
+
+scripts/
+
+testdata/
+
+build-output/
+
+reports/
+```
+
+---
+
+# 22. project-app/.gitlab-ci.yml
+
+実際に作成すること。
+
+以下を実現すること。
+
+## 共通Template読込
+
+```yaml
+include:
+```
+
+で
+
+```text
+gitlab-cicd-template
+v1.0.0
+```
+
+を利用する構成とする。
+
+---
+
+## APP定義
+
+例
+
+```yaml
+variables:
+
+  APP_NAME: customer-portal
+
+  APP_TYPE: vue-springboot
+
+  DEPLOY_ENV: dev
+```
+
+---
+
+## GitLab標準記法利用
+
+利用例として以下を実装すること。
+
+```yaml
+stages:
+```
+
+```yaml
+workflow:
+```
+
+```yaml
+rules:
+```
+
+```yaml
+when:
+```
+
+---
+
+## Job構成例
+
+```yaml
+frontend_build:
+  extends: .vue_frontend_build
+
+backend_build:
+  extends: .springboot_build
+
+frontend_test:
+  extends: .vue_frontend_test
+
+backend_test:
+  extends: .springboot_test
+```
+
+---
+
+# 23. README.md
+
+README.mdを作成すること。
+
+---
+
+## 目次
+
+リンク付き目次を作成すること。
+
+---
+
+## 記載内容
+
+### GitLab CI/CD Templateの使い方
+
+### アプリ側の設定方法
+
+### APP_TYPE一覧
+
+### Stage一覧
+
+### Job Template一覧
+
+### Quality Policy一覧
+
+### Quality Rule一覧
+
+### 変数一覧
+
+### examples説明
+
+### GitFlow利用例
+
+### Trunk Based利用例
+
+### Vue(Vite)+SpringBoot利用例
+
+### Python利用例
+
+### Batch利用例
+
+### Manual Deploy利用例
+
+---
+
+# 24. GitLabバージョン方針
+
+特定バージョン依存機能は禁止。
+
+GitLab標準機能のみを利用すること。
+
+利用可能機能
+
+```text
+include
+
+extends
+
+workflow
+
+rules
+
+stages
+
+variables
+
+needs
+
+artifacts
+
+when
+```
+
+将来のGitLabバージョンアップでも利用可能な構成とすること。
+
+---
+
+# 25. 成果物
+
+以下をすべて生成すること。
+
+```text
+ディレクトリ構造
+
+README.md
+
+docs
+
+examples
+
+YAML
+
+Shell Script
+
+project-app
+
+project-app/.gitlab-ci.yml
+
+サンプルSQL
+
+サンプルPlaywright
+
+サンプルJUnit
+
+サンプルVue
+```
+
+雛形だけでなく最低限動作するサンプル実装を含めること。

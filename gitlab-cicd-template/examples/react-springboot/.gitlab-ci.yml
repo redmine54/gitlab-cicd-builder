@@ -1,0 +1,35 @@
+include:
+  - project: YOUR_GROUP/gitlab-cicd-template
+    ref: v1.0.0
+    file:
+      - /gitlab_cicd_templates/10_pipeline_standard.yml
+      - /gitlab_cicd_templates/40_stage_pre_common.yml
+      - /gitlab_cicd_templates/51_stage_build_common.yml
+      - /gitlab_cicd_templates/52_stage_test_common.yml
+      - /gitlab_cicd_templates/54_stage_security_common.yml
+
+stages: [40_pre, 51_build, 52_test, 54_security]
+workflow:
+  rules:
+    - if: "$CI_COMMIT_BRANCH"
+    - if: "$CI_COMMIT_TAG"
+variables:
+  APP_NAME: react-service
+  APP_TYPE: react-springboot
+pre_quality:
+  extends: .common_pre
+frontend_build:
+  extends: .react_frontend_build
+  needs: [pre_quality]
+backend_build:
+  extends: .springboot_build
+  needs: [pre_quality]
+frontend_test:
+  extends: .react_frontend_test
+  needs: [frontend_build]
+backend_test:
+  extends: .springboot_test
+  needs: [backend_build]
+security_scan:
+  extends: .security_scan
+  needs: [frontend_build, backend_build]

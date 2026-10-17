@@ -1,0 +1,19 @@
+.springboot_deploy:
+  stage: 56_deploy
+  image: maven:3.9-eclipse-temurin-21
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/deploy/deploy.sh
+
+.tomcat_deploy:
+  extends: .springboot_deploy
+
+.python_deploy:
+  image: python:${PYTHON_VERSION}-slim
+  extends: .springboot_deploy
+
+.was_deploy:
+  extends: .springboot_deploy
+
+.liberty_deploy:
+  extends: .springboot_deploy

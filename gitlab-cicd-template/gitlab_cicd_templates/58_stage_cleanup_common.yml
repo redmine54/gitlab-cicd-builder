@@ -1,0 +1,6 @@
+.template_cleanup:
+  stage: 58_cleanup
+  image: node:${NODE_VERSION}-bookworm
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/cleanup/cleanup.sh

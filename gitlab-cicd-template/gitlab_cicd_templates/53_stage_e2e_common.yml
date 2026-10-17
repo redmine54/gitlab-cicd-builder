@@ -1,0 +1,21 @@
+.springboot_e2e:
+  stage: 53_e2e
+  image: node:${NODE_VERSION}-bookworm
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/e2e/run_e2e.sh
+  artifacts:
+    when: always
+    paths:
+      - playwright/playwright-report/
+      - playwright/test-results/
+    expire_in: 7 days
+
+.tomcat_e2e:
+  extends: .springboot_e2e
+
+.python_e2e:
+  extends: .springboot_e2e
+
+.liberty_e2e:
+  extends: .springboot_e2e

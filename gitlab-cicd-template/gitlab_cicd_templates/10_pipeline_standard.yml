@@ -1,0 +1,26 @@
+variables:
+  TEMPLATE_PROJECT_PATH: "YOUR_GROUP/gitlab-cicd-template"
+  TEMPLATE_REF: "v1.0.0"
+  NODE_VERSION: "22"
+  PYTHON_VERSION: "3.12"
+  PRE_VALIDATE_ENABLED: "true"
+  PRE_SECRET_SCAN_ENABLED: "true"
+  PRE_DEPENDENCY_SCAN_ENABLED: "true"
+  PRE_SBOM_ENABLED: "false"
+  PRE_LICENSE_ENABLED: "false"
+  PRE_SAST_ENABLED: "false"
+  PRE_POLICY_GATE_ENABLED: "true"
+  SECRET_SCAN_FAIL_ON_FOUND: "true"
+  CVE_FAIL_SEVERITY: "high"
+  LICENSE_DENY_LIST: ""
+  SAST_FAIL_SEVERITY: "HIGH"
+  POLICY_GATE_FAIL_FAST: "true"
+  TEST_COVERAGE_MIN: "0"
+  SECURITY_TOOLS: "trivy"
+  REPORT_DIR: "reports"
+
+.template_checkout:
+  before_script:
+    - 'if ! command -v git >/dev/null 2>&1 || ! command -v bash >/dev/null 2>&1; then if command -v apt-get >/dev/null 2>&1; then apt-get update && apt-get install -y git bash; elif command -v apk >/dev/null 2>&1; then apk add --no-cache git bash; else echo "git and bash are required" >&2; exit 1; fi; fi'
+    - 'test "$TEMPLATE_PROJECT_PATH" != "YOUR_GROUP/gitlab-cicd-template" || { echo "Set TEMPLATE_PROJECT_PATH to the GitLab namespace/project path" >&2; exit 1; }'
+    - 'test -d .gitlab-cicd-template/.git || git clone --depth 1 --branch "$TEMPLATE_REF" "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${TEMPLATE_PROJECT_PATH}.git" .gitlab-cicd-template'

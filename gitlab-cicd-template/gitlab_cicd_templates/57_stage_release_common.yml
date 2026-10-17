@@ -1,0 +1,10 @@
+.application_release:
+  stage: 57_release
+  image: node:${NODE_VERSION}-bookworm
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/release/release.sh
+  artifacts:
+    paths:
+      - reports/release.txt
+    expire_in: 30 days

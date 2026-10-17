@@ -1,0 +1,203 @@
+pre_quality:
+  extends: .common_pre
+  rules:
+    - when: always
+
+vue_frontend_build:
+  extends: .vue_frontend_build
+  needs: [pre_quality]
+  rules:
+    - if: '$APP_TYPE == "vue-springboot"'
+
+react_frontend_build:
+  extends: .react_frontend_build
+  needs: [pre_quality]
+  rules:
+    - if: '$APP_TYPE == "react-springboot"'
+
+springboot_build:
+  extends: .springboot_build
+  needs: [pre_quality]
+  rules:
+    - if: '$APP_TYPE == "springboot" || $APP_TYPE == "vue-springboot" || $APP_TYPE == "react-springboot"'
+
+tomcat_build:
+  extends: .tomcat_build
+  needs: [pre_quality]
+  rules:
+    - if: '$APP_TYPE == "tomcat"'
+
+python_build:
+  extends: .python_build
+  needs: [pre_quality]
+  rules:
+    - if: '$APP_TYPE == "python"'
+
+was_build:
+  extends: .was_build
+  needs: [pre_quality]
+  rules:
+    - if: '$APP_TYPE == "was"'
+
+liberty_build:
+  extends: .liberty_build
+  needs: [pre_quality]
+  rules:
+    - if: '$APP_TYPE == "liberty"'
+
+vue_frontend_test:
+  extends: .vue_frontend_test
+  needs: [vue_frontend_build]
+  rules:
+    - if: '$APP_TYPE == "vue-springboot"'
+
+react_frontend_test:
+  extends: .react_frontend_test
+  needs: [react_frontend_build]
+  rules:
+    - if: '$APP_TYPE == "react-springboot"'
+
+springboot_test:
+  extends: .springboot_test
+  needs: [springboot_build]
+  rules:
+    - if: '$APP_TYPE == "springboot" || $APP_TYPE == "vue-springboot" || $APP_TYPE == "react-springboot"'
+
+tomcat_test:
+  extends: .tomcat_test
+  needs: [tomcat_build]
+  rules:
+    - if: '$APP_TYPE == "tomcat"'
+
+python_test:
+  extends: .python_test
+  needs: [python_build]
+  rules:
+    - if: '$APP_TYPE == "python"'
+
+was_test:
+  extends: .was_test
+  needs: [was_build]
+  rules:
+    - if: '$APP_TYPE == "was"'
+
+liberty_test:
+  extends: .liberty_test
+  needs: [liberty_build]
+  rules:
+    - if: '$APP_TYPE == "liberty"'
+
+springboot_e2e:
+  extends: .springboot_e2e
+  needs: [springboot_build]
+  rules:
+    - if: '$APP_TYPE == "springboot" && $STARTUP_URL && $PLAYWRIGHT_DIR && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH)'
+
+vue_springboot_e2e:
+  extends: .springboot_e2e
+  needs: [vue_frontend_build, springboot_build]
+  rules:
+    - if: '$APP_TYPE == "vue-springboot" && $STARTUP_URL && $PLAYWRIGHT_DIR && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH)'
+
+react_springboot_e2e:
+  extends: .springboot_e2e
+  needs: [react_frontend_build, springboot_build]
+  rules:
+    - if: '$APP_TYPE == "react-springboot" && $STARTUP_URL && $PLAYWRIGHT_DIR && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH)'
+
+tomcat_e2e:
+  extends: .tomcat_e2e
+  needs: [tomcat_build]
+  rules:
+    - if: '$APP_TYPE == "tomcat" && $STARTUP_URL && $PLAYWRIGHT_DIR && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH)'
+
+python_e2e:
+  extends: .python_e2e
+  needs: [python_build]
+  rules:
+    - if: '$APP_TYPE == "python" && $STARTUP_URL && $PLAYWRIGHT_DIR && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH)'
+
+liberty_e2e:
+  extends: .liberty_e2e
+  needs: [liberty_build]
+  rules:
+    - if: '$APP_TYPE == "liberty" && $STARTUP_URL && $PLAYWRIGHT_DIR && ($CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH)'
+
+security_scan:
+  extends: .security_scan
+  rules:
+    - if: "$APP_TYPE =~ /^(tomcat|springboot|vue-springboot|react-springboot|python|was|liberty)$/"
+
+performance_test:
+  extends: .performance_test
+  rules:
+    - if: "$PERFORMANCE_URL && $APP_TYPE =~ /^(tomcat|springboot|vue-springboot|react-springboot|python|was|liberty)$/"
+
+deploy_springboot:
+  extends: .springboot_deploy
+  needs: [springboot_build, springboot_test]
+  rules:
+    - if: '$APP_TYPE == "springboot" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ $RELEASE_BRANCH_REGEX)'
+      when: manual
+    - when: never
+
+deploy_vue_springboot:
+  extends: .springboot_deploy
+  needs: [vue_frontend_build, springboot_build, vue_frontend_test, springboot_test]
+  rules:
+    - if: '$APP_TYPE == "vue-springboot" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ $RELEASE_BRANCH_REGEX)'
+      when: manual
+    - when: never
+
+deploy_react_springboot:
+  extends: .springboot_deploy
+  needs: [react_frontend_build, springboot_build, react_frontend_test, springboot_test]
+  rules:
+    - if: '$APP_TYPE == "react-springboot" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ $RELEASE_BRANCH_REGEX)'
+      when: manual
+    - when: never
+
+deploy_tomcat:
+  extends: .tomcat_deploy
+  needs: [tomcat_build, tomcat_test]
+  rules:
+    - if: '$APP_TYPE == "tomcat" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ $RELEASE_BRANCH_REGEX)'
+      when: manual
+    - when: never
+
+deploy_python:
+  extends: .python_deploy
+  needs: [python_build, python_test]
+  rules:
+    - if: '$APP_TYPE == "python" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ $RELEASE_BRANCH_REGEX)'
+      when: manual
+    - when: never
+
+deploy_was:
+  extends: .was_deploy
+  needs: [was_build, was_test]
+  rules:
+    - if: '$APP_TYPE == "was" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ $RELEASE_BRANCH_REGEX)'
+      when: manual
+    - when: never
+
+deploy_liberty:
+  extends: .liberty_deploy
+  needs: [liberty_build, liberty_test]
+  rules:
+    - if: '$APP_TYPE == "liberty" && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ $RELEASE_BRANCH_REGEX)'
+      when: manual
+    - when: never
+
+release_app:
+  extends: .application_release
+  rules:
+    - if: "$CI_COMMIT_TAG =~ $VERSION_TAG_REGEX"
+
+cleanup_template_checkout:
+  extends: .template_cleanup
+  when: always
+
+pipeline_notification:
+  extends: .pipeline_notify
+  when: always

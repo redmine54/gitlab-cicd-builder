@@ -1,0 +1,93 @@
+.vue_frontend_test:
+  stage: 52_test
+  image: node:${NODE_VERSION}-bookworm
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/test/test.sh vue
+  artifacts:
+    when: always
+    paths:
+      - frontend/coverage/
+    expire_in: 7 days
+
+.react_frontend_test:
+  stage: 52_test
+  image: node:${NODE_VERSION}-bookworm
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/test/test.sh react
+  artifacts:
+    when: always
+    paths:
+      - frontend/coverage/
+    expire_in: 7 days
+
+.springboot_test:
+  stage: 52_test
+  image: maven:3.9-eclipse-temurin-21
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/test/test.sh springboot
+  artifacts:
+    when: always
+    paths:
+      - backend/target/surefire-reports/
+      - backend/target/site/jacoco/
+    reports:
+      junit: backend/target/surefire-reports/TEST-*.xml
+    expire_in: 7 days
+
+.tomcat_test:
+  stage: 52_test
+  image: maven:3.9-eclipse-temurin-21
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/test/test.sh tomcat
+  artifacts:
+    when: always
+    paths:
+      - backend/target/surefire-reports/
+    reports:
+      junit: backend/target/surefire-reports/TEST-*.xml
+    expire_in: 7 days
+
+.python_test:
+  stage: 52_test
+  image: python:${PYTHON_VERSION}-slim
+  extends: .template_checkout
+  script:
+    - python -m pip install --no-cache-dir pytest coverage
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/test/test.sh python
+  artifacts:
+    when: always
+    paths:
+      - reports/
+    expire_in: 7 days
+
+.was_test:
+  stage: 52_test
+  image: maven:3.9-eclipse-temurin-21
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/test/test.sh was
+  artifacts:
+    when: always
+    paths:
+      - backend/target/surefire-reports/
+    reports:
+      junit: backend/target/surefire-reports/TEST-*.xml
+    expire_in: 7 days
+
+.liberty_test:
+  stage: 52_test
+  image: maven:3.9-eclipse-temurin-21
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/test/test.sh liberty
+  artifacts:
+    when: always
+    paths:
+      - backend/target/surefire-reports/
+    reports:
+      junit: backend/target/surefire-reports/TEST-*.xml
+    expire_in: 7 days

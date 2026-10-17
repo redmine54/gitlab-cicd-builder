@@ -1,0 +1,11 @@
+.performance_test:
+  stage: 55_performance
+  image: node:${NODE_VERSION}-bookworm
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/performance/run_performance.sh
+  artifacts:
+    when: always
+    paths:
+      - reports/
+    expire_in: 7 days

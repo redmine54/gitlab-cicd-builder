@@ -1,0 +1,12 @@
+include:
+  - local: /gitlab_cicd_templates/10_pipeline_standard.yml
+  - local: /gitlab_cicd_templates/40_stage_pre_common.yml
+  - local: /gitlab_cicd_templates/51_stage_build_common.yml
+  - local: /gitlab_cicd_templates/52_stage_test_common.yml
+  - local: /gitlab_cicd_templates/53_stage_e2e_common.yml
+  - local: /gitlab_cicd_templates/54_stage_security_common.yml
+  - local: /gitlab_cicd_templates/55_stage_performance_common.yml
+  - local: /gitlab_cicd_templates/56_stage_deploy_common.yml
+  - local: /gitlab_cicd_templates/57_stage_release_common.yml
+  - local: /gitlab_cicd_templates/58_stage_cleanup_common.yml
+  - local: /gitlab_cicd_templates/59_stage_notify_common.yml

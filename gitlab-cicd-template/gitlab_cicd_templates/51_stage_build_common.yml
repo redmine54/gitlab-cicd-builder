@@ -1,0 +1,85 @@
+.vue_frontend_build:
+  stage: 51_build
+  image: node:${NODE_VERSION}-bookworm
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/build/build.sh vue
+  artifacts:
+    paths:
+      - frontend/dist/
+      - build-output/
+    expire_in: 7 days
+
+.react_frontend_build:
+  stage: 51_build
+  image: node:${NODE_VERSION}-bookworm
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/build/build.sh react
+  artifacts:
+    paths:
+      - frontend/dist/
+      - build-output/
+    expire_in: 7 days
+
+.springboot_build:
+  stage: 51_build
+  image: maven:3.9-eclipse-temurin-21
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/build/build.sh springboot
+  artifacts:
+    paths:
+      - backend/target/*.jar
+      - backend/target/*.war
+      - build-output/
+    expire_in: 7 days
+
+.tomcat_build:
+  stage: 51_build
+  image: maven:3.9-eclipse-temurin-21
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/build/build.sh tomcat
+  artifacts:
+    paths:
+      - backend/target/*.war
+      - build-output/
+    expire_in: 7 days
+
+.python_build:
+  stage: 51_build
+  image: python:${PYTHON_VERSION}-slim
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/build/build.sh python
+  artifacts:
+    paths:
+      - build-output/
+    expire_in: 7 days
+
+.was_build:
+  stage: 51_build
+  image: maven:3.9-eclipse-temurin-21
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/build/build.sh was
+  artifacts:
+    paths:
+      - backend/target/*.war
+      - backend/target/*.ear
+      - build-output/
+    expire_in: 7 days
+
+.liberty_build:
+  stage: 51_build
+  image: maven:3.9-eclipse-temurin-21
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/build/build.sh liberty
+  artifacts:
+    paths:
+      - backend/target/*.war
+      - backend/target/*.jar
+      - build-output/
+    expire_in: 7 days

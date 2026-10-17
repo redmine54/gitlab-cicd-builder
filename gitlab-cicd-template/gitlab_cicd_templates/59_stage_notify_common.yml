@@ -1,0 +1,6 @@
+.pipeline_notify:
+  stage: 59_notify
+  image: node:${NODE_VERSION}-bookworm
+  extends: .template_checkout
+  script:
+    - bash .gitlab-cicd-template/gitlab_cicd_templates/scripts/notify/notify.sh

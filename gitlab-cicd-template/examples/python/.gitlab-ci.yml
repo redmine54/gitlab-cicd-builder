@@ -1,0 +1,33 @@
+include:
+  - project: YOUR_GROUP/gitlab-cicd-template
+    ref: v1.0.0
+    file:
+      - /gitlab_cicd_templates/10_pipeline_standard.yml
+      - /gitlab_cicd_templates/40_stage_pre_common.yml
+      - /gitlab_cicd_templates/51_stage_build_common.yml
+      - /gitlab_cicd_templates/52_stage_test_common.yml
+      - /gitlab_cicd_templates/56_stage_deploy_common.yml
+
+stages: [40_pre, 51_build, 52_test, 56_deploy]
+workflow:
+  rules:
+    - if: "$CI_COMMIT_BRANCH"
+variables:
+  APP_NAME: python-batch
+  APP_TYPE: python
+  PYTHON_DIR: .
+pre_quality:
+  extends: .common_pre
+build:
+  extends: .python_build
+  needs: [pre_quality]
+test:
+  extends: .python_test
+  needs: [build]
+deploy_manual:
+  extends: .python_deploy
+  needs: [build, test]
+  rules:
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+      when: manual
+    - when: never
