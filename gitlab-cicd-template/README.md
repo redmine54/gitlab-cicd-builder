@@ -172,6 +172,8 @@ credentialや秘密情報はYAMLやリポジトリに記載せず、GitLab CI/CD
 - `examples/liberty/`: Servlet WAR、JUnit、Open Liberty設定とPipeline。
 - ワークスペースの`project-app/`: Vue + Spring Boot + H2の動作サンプル。
 
+各exampleの`.gitlab-ci.yml`はAPP_TYPE、アプリ固有変数、`stages`、`workflow`のみを宣言します。実行Jobは共通側の`app_pipeline.yml`がAPP_TYPEに応じて選択するため、example側にJob定義を重複記載しません。
+
 ## GitFlow
 
 Pipelineを作成するブランチ戦略はアプリ側の`workflow`に置きます。Deploy Job自体は共通側が`main`、`master`、`release/*`でmanualとして作成し、バージョンtagではRelease Jobを作成します。release branchとtagだけを許可する例:

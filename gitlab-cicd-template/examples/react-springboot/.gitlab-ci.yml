@@ -1,35 +1,39 @@
 include:
-  - project: YOUR_GROUP/gitlab-cicd-template
-    ref: v1.0.0
-    file:
-      - /gitlab_cicd_templates/10_pipeline_standard.yml
-      - /gitlab_cicd_templates/40_stage_pre_common.yml
-      - /gitlab_cicd_templates/51_stage_build_common.yml
-      - /gitlab_cicd_templates/52_stage_test_common.yml
-      - /gitlab_cicd_templates/54_stage_security_common.yml
+  - project: &template_project YOUR_GROUP/gitlab-cicd-template
+    ref: &template_ref v1.0.0
+    file: /gitlab_cicd_templates/includes/all_stages.yml
+  - project: *template_project
+    ref: *template_ref
+    file: /gitlab_cicd_templates/includes/app_pipeline.yml
 
-stages: [40_pre, 51_build, 52_test, 54_security]
+stages:
+  - 40_pre
+  - 51_build
+  - 52_test
+  - 53_e2e
+  - 54_security
+  - 55_performance
+  - 56_deploy
+  - 57_release
+  - 58_cleanup
+  - 59_notify
+
 workflow:
   rules:
-    - if: "$CI_COMMIT_BRANCH"
-    - if: "$CI_COMMIT_TAG"
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: "$CI_COMMIT_BRANCH =~ $FEATURE_BRANCH_REGEX"
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: "$CI_COMMIT_BRANCH =~ $RELEASE_BRANCH_REGEX"
+    - if: "$CI_COMMIT_TAG =~ $VERSION_TAG_REGEX"
+
 variables:
+  TEMPLATE_PROJECT_PATH: *template_project
+  TEMPLATE_REF: *template_ref
+  FEATURE_BRANCH_REGEX: "/^feature.*$/"
+  RELEASE_BRANCH_REGEX: '/^release\/.*$/'
+  VERSION_TAG_REGEX: '/^v[0-9]+\.[0-9]+.*$/'
   APP_NAME: react-service
   APP_TYPE: react-springboot
-pre_quality:
-  extends: .common_pre
-frontend_build:
-  extends: .react_frontend_build
-  needs: [pre_quality]
-backend_build:
-  extends: .springboot_build
-  needs: [pre_quality]
-frontend_test:
-  extends: .react_frontend_test
-  needs: [frontend_build]
-backend_test:
-  extends: .springboot_test
-  needs: [backend_build]
-security_scan:
-  extends: .security_scan
-  needs: [frontend_build, backend_build]

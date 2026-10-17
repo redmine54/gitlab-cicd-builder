@@ -1,66 +1,45 @@
 include:
-  - project: YOUR_GROUP/gitlab-cicd-template
-    ref: v1.0.0
-    file:
-      - /gitlab_cicd_templates/10_pipeline_standard.yml
-      - /gitlab_cicd_templates/40_stage_pre_common.yml
-      - /gitlab_cicd_templates/51_stage_build_common.yml
-      - /gitlab_cicd_templates/52_stage_test_common.yml
-      - /gitlab_cicd_templates/53_stage_e2e_common.yml
-      - /gitlab_cicd_templates/54_stage_security_common.yml
-      - /gitlab_cicd_templates/56_stage_deploy_common.yml
-      - /gitlab_cicd_templates/57_stage_release_common.yml
-      - /gitlab_cicd_templates/58_stage_cleanup_common.yml
-      - /gitlab_cicd_templates/59_stage_notify_common.yml
+  - project: &template_project YOUR_GROUP/gitlab-cicd-template
+    ref: &template_ref v1.0.0
+    file: /gitlab_cicd_templates/includes/all_stages.yml
+  - project: *template_project
+    ref: *template_ref
+    file: /gitlab_cicd_templates/includes/app_pipeline.yml
 
-stages: [40_pre, 51_build, 52_test, 53_e2e, 54_security, 56_deploy, 57_release, 58_cleanup, 59_notify]
+stages:
+  - 40_pre
+  - 51_build
+  - 52_test
+  - 53_e2e
+  - 54_security
+  - 55_performance
+  - 56_deploy
+  - 57_release
+  - 58_cleanup
+  - 59_notify
+
 workflow:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: "$CI_COMMIT_BRANCH"
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: "$CI_COMMIT_BRANCH =~ $FEATURE_BRANCH_REGEX"
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: "$CI_COMMIT_BRANCH =~ $RELEASE_BRANCH_REGEX"
+    - if: "$CI_COMMIT_TAG =~ $VERSION_TAG_REGEX"
 
 variables:
+  TEMPLATE_PROJECT_PATH: *template_project
+  TEMPLATE_REF: *template_ref
+  FEATURE_BRANCH_REGEX: "/^feature.*$/"
+  RELEASE_BRANCH_REGEX: '/^release\/.*$/'
+  VERSION_TAG_REGEX: '/^v[0-9]+\.[0-9]+.*$/'
   APP_NAME: customer-portal-example
   APP_TYPE: vue-springboot
+  FRONTEND_DIR: frontend
+  BACKEND_DIR: backend
+  PLAYWRIGHT_DIR: playwright
   BACKEND_STARTUP_COMMAND: cd backend && java -jar target/vue-springboot-example-1.0.0-SNAPSHOT.jar
   STARTUP_COMMAND: cd frontend && npm run preview -- --host 127.0.0.1
   STARTUP_URL: http://127.0.0.1:4173
-
-pre_quality:
-  extends: .common_pre
-  rules: [{ when: always }]
-frontend_build:
-  extends: .vue_frontend_build
-  needs: [pre_quality]
-backend_build:
-  extends: .springboot_build
-  needs: [pre_quality]
-frontend_test:
-  extends: .vue_frontend_test
-  needs: [frontend_build]
-backend_test:
-  extends: .springboot_test
-  needs: [backend_build]
-browser_test:
-  extends: .springboot_e2e
-  needs: [frontend_build, backend_build]
-security_scan:
-  extends: .security_scan
-  needs: [frontend_build, backend_build]
-deploy_manual:
-  extends: .springboot_deploy
-  needs: [frontend_build, backend_build]
-  rules:
-    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
-      when: manual
-    - when: never
-release:
-  extends: .application_release
-  rules:
-    - if: "$CI_COMMIT_TAG"
-cleanup:
-  extends: .template_cleanup
-  when: always
-notify:
-  extends: .pipeline_notify
-  when: always
